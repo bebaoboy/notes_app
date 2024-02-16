@@ -1,5 +1,5 @@
 {
-  "appTitle": "notes_app",
+  "appTitle": "notes_app_debug",
   "@appTitle": {
     "description": "The title of the application"
   }

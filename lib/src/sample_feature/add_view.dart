@@ -59,10 +59,11 @@ class _AddViewState extends State<AddView> {
         lastDate: DateTime(2099));
     if (picker != null) {
       setState(() {
-        if (_selectedDate != null ) {
-          _selectedDate = DateTime(picker.year, picker.month, picker.day, _selectedDate!.hour, _selectedDate!.minute);
+        if (_selectedDate != null) {
+          _selectedDate = DateTime(picker.year, picker.month, picker.day,
+              _selectedDate!.hour, _selectedDate!.minute);
         } else {
-        _selectedDate = DateTime(picker.year, picker.month, picker.day);
+          _selectedDate = DateTime(picker.year, picker.month, picker.day);
         }
       });
       if (_selectedDate != null && _selectedDate!.day < DateTime.now().day) {
@@ -92,13 +93,16 @@ class _AddViewState extends State<AddView> {
   getTimeFromUser() async {
     TimeOfDay t = TimeOfDay.now();
     DateTime d = DateTime.now();
-    TimeOfDay? picker =
-        await showTimePicker(context: context, initialTime: TimeOfDay.now(), builder: (context, child) {
-          return MediaQuery(
-            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+    TimeOfDay? picker = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
           child: child ?? Container(),
-          );
-        },);
+        );
+      },
+    );
     if (picker != null) {
       if (_selectedDate == null) {
         final snackBar = SnackBar(
@@ -120,8 +124,7 @@ class _AddViewState extends State<AddView> {
         // Find the ScaffoldMessenger in the widget tree
         // and use it to show a SnackBar.
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
-      }
-      else if (_selectedDate!.day <= d.day &&
+      } else if (_selectedDate!.day <= d.day &&
           (picker.hour < t.hour || picker.minute < t.minute)) {
         final snackBar = SnackBar(
           duration: const Duration(seconds: 5),
@@ -145,7 +148,8 @@ class _AddViewState extends State<AddView> {
       } else {
         setState(() {
           TimeOfDay t = picker;
-_selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, t.hour, t.minute);
+          _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month,
+              _selectedDate!.day, t.hour, t.minute);
           _selectedTime = DateFormat("HH:mm").format(_selectedDate!);
         });
       }
@@ -168,7 +172,6 @@ _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDat
         onPress: () async {
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
-            
             var newNote = Note(
                 data: _dataController.text,
                 id: sampleData.length,
@@ -176,12 +179,13 @@ _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDat
                 created: DateTime.now(),
                 modified: DateTime.now(),
                 alarmed: _selectedDate,
-                color: getRandomColor());
+                color: getRandomColor(),
+                remindBefore: _selectedRemind);
             print(newNote);
             setState(() {
               sampleData.insert(0, newNote);
             });
-            
+
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -352,8 +356,10 @@ _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDat
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: _selectedDate == null ? "Choose a date" : DateFormat("dd/MM/yyyy")
-                                      .format(_selectedDate!),
+                                  hintText: _selectedDate == null
+                                      ? "Choose a date"
+                                      : DateFormat("dd/MM/yyyy")
+                                          .format(_selectedDate!),
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -409,7 +415,9 @@ _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDat
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: _selectedTime.isNotEmpty ? _selectedTime : "Choose a reminder time",
+                                  hintText: _selectedTime.isNotEmpty
+                                      ? _selectedTime
+                                      : "Choose a reminder time",
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -480,6 +488,7 @@ _selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDat
                               onChanged: (value) {
                                 setState(() {
                                   _selectedRemind = int.parse(value!);
+                                  print(_selectedRemind);
                                 });
                               },
                               items: remindList.map<DropdownMenuItem<String>>(

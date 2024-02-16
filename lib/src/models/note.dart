@@ -12,6 +12,7 @@ class Note {
   DateTime? alarmed;
   bool completed = false; //0: To-do, 1: Completed
   Color? color;
+  int remindBefore;
   Note(
       {this.title = "",
       required this.data,
@@ -20,7 +21,8 @@ class Note {
       this.modified,
       required this.id,
       this.color,
-      this.alarmed});
+      this.alarmed,
+      this.remindBefore = 10});
 
   Note copyWith({
     String? data,
@@ -40,16 +42,18 @@ class Note {
       'data': data,
       'completed': completed,
       'created': created != null ? created.toString() : '',
-      'modified': modified != null ? modified.toString(): '',
+      'modified': modified != null ? modified.toString() : '',
       'id': id,
       'alarmed': alarmed != null ? alarmed.toString() : '',
       'color': color != null ? '${color!.value}' : "",
+      'remindBefore': remindBefore,
     };
   }
 
   factory Note.fromMap(Map<String, dynamic> map) {
     return Note(
       id: map['id'] as int,
+      remindBefore: map['remindBefore'] == null ? 10 : map['remindBefore'] as int,
       data: map['data'] as String,
       title: map['title'] as String,
       completed: map['completed'] as bool,
@@ -66,7 +70,8 @@ class Note {
       Note.fromMap(json.decode(source) as Map<String, dynamic>);
 
   @override
-  String toString() => 'Note(title: $title, data: $data, completed: $completed, created: $created, alarm: $alarmed)';
+  String toString() =>
+      'Note(title: $title, data: $data, completed: $completed, created: $created, alarm: $alarmed, before: $remindBefore)';
 
   @override
   bool operator ==(covariant Note other) {
@@ -79,9 +84,7 @@ class Note {
   int get hashCode => data.hashCode ^ completed.hashCode;
 
   static String encode(List<Note> notes) => json.encode(
-        notes
-            .map<Map<String, dynamic>>((note) => note.toMap())
-            .toList(),
+        notes.map<Map<String, dynamic>>((note) => note.toMap()).toList(),
       );
 
   static List<Note> decode(String notes) =>

@@ -37,13 +37,15 @@ class _DetailViewState extends State<DetailView> {
       ),
     );
     _dateController.value = TextEditingValue(
-      text: widget.item.created == null ? "" : DateFormat().format(widget.item.created!),
+      text: widget.item.alarmed == null ? "Indefinitely" : DateFormat("dd/MM/yyyy")
+                                      .format(widget.item.alarmed!),
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
       ),
     );
     _timeController.value = TextEditingValue(
-      text: widget.item.alarmed == null ? "" : DateFormat().format(widget.item.alarmed!),
+      text: widget.item.alarmed == null ? "" : DateFormat("HH:mm")
+                                      .format(widget.item.alarmed!),
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
       ),
@@ -52,6 +54,11 @@ class _DetailViewState extends State<DetailView> {
   }
 
   final _newValue = "New value";
+   List<int> remindList = [5, 10, 15, 20];
+  final _formKey = GlobalKey<FormState>();
+    final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController2 = ScrollController();
+
 
   @override
   Widget build(BuildContext context) {
@@ -68,91 +75,310 @@ class _DetailViewState extends State<DetailView> {
         child: Icon(Icons.edit),
       ),
       body: Container(
-        margin: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-        child: Center(
-            child: ListView(
-          children: [
-            TextField(
-              readOnly: true,
-              controller: _titleController,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 50,
-                  fontWeight: FontWeight.w500),
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "Title",
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade800, fontSize: 50)),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            TextField(
-              readOnly: true,
-              controller: _dataController,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              textAlign: TextAlign.justify,
-              style: const TextStyle(
-                height: 1.5,
-                color: Colors.black,
-                fontSize: 20,
+          margin: const EdgeInsets.fromLTRB(5, 30, 10, 10),
+          child: Scrollbar(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                children: [
+                  Scrollbar(
+                    child: Card(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      elevation: 5,
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: TextFormField(
+                          validator: (value) {
+                            if (value == null &&
+                                _titleController.text.isEmpty) {
+                              return "Either title or content must be entered!";
+                            }
+                          },
+                          scrollController: _scrollController,
+                          controller: _titleController,
+                          keyboardType: TextInputType.multiline,
+                          maxLines: 2,
+                          minLines: 1,
+                          style: const TextStyle(
+                              color: Colors.black,
+                              fontSize: 50,
+                              fontWeight: FontWeight.w500),
+                          decoration: InputDecoration(
+                              //filled: true,
+                              label: const Text("Title"),
+                              labelStyle: const TextStyle(
+                                  color: Color.fromARGB(255, 74, 120, 246),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600),
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              contentPadding: const EdgeInsets.only(left: 5),
+                              // border: const UnderlineInputBorder(
+                              //     //Outline border type for TextFeild
+                              //     borderRadius:
+                              //         BorderRadius.all(Radius.circular(10)),
+                              //     borderSide: BorderSide(
+                              //       color: Colors.black,
+                              //       width: 1,
+                              //     )),
+                              // enabledBorder: const UnderlineInputBorder(
+                              //     //Outline border type for TextFeild
+                              //     borderRadius:
+                              //         BorderRadius.all(Radius.circular(10)),
+                              //     borderSide: BorderSide(
+                              //       color: Colors.black,
+                              //       width: 1,
+                              //     )),
+                              border: InputBorder.none,
+                              hintText: "Title",
+                              hintStyle: TextStyle(
+                                  color: Colors.grey.shade800, fontSize: 50)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Scrollbar(
+                      thumbVisibility: true,
+                      interactive: true,
+                      controller: _scrollController2,
+                      child: Card(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 5,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: TextFormField(
+                            validator: (value) {
+                              if ((value == null || value.isEmpty) &&
+                                  _titleController.text.isEmpty) {
+                                return "Either title or content must be entered!";
+                              }
+                            },
+                            scrollController: _scrollController2,
+                            controller: _dataController,
+                            keyboardType: TextInputType.multiline,
+                            maxLines: 7,
+                            minLines: 2,
+                            textAlign: TextAlign.justify,
+                            style: const TextStyle(
+                              height: 1.5,
+                              color: Colors.black,
+                              fontSize: 20,
+                            ),
+                            decoration: InputDecoration(
+                                contentPadding: const EdgeInsets.only(left: 20),
+                                // filled: true,
+                                label: const Text("Content"),
+                                labelStyle: const TextStyle(
+                                    color: Color.fromARGB(255, 74, 120, 246),
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600),
+                                floatingLabelBehavior:
+                                    FloatingLabelBehavior.always,
+                                border: InputBorder.none,
+                                hintText: "Type your content",
+                                hintStyle: TextStyle(
+                                    color: Colors.grey.shade800, fontSize: 20)),
+                          ),
+                        ),
+                      )),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              onTap: () {
+                                //getDateFromUser();
+                              },
+                              readOnly: true,
+                              controller: _dateController,
+                              keyboardType: TextInputType.multiline,
+                              maxLines: 1,
+                              textAlign: TextAlign.justify,
+                              style: const TextStyle(
+                                height: 1.5,
+                                color: Colors.black,
+                                fontSize: 20,
+                              ),
+                              decoration: InputDecoration(
+                                  contentPadding:
+                                      const EdgeInsets.only(left: 20),
+                                  // filled: true,
+                                  label: const Text("Date"),
+                                  labelStyle: const TextStyle(
+                                      color: Color.fromARGB(255, 74, 120, 246),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600),
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.always,
+                                  border: InputBorder.none,
+                                  hintText: widget.item.alarmed == null ? "Indefinitely" : DateFormat("dd/MM/yyyy")
+                                      .format(widget.item.alarmed!),
+                                  hintStyle: const TextStyle(
+                                      color: Colors.black, fontSize: 20)),
+                            ),
+                          ),
+                          Container(
+                            child: IconButton(
+                              icon: const Icon(Icons.calendar_month),
+                              onPressed: () {
+                                //getDateFromUser();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              onTap: () {
+                                //getTimeFromUser();
+                              },
+                              readOnly: true,
+                              controller: _timeController,
+                              keyboardType: TextInputType.multiline,
+                              maxLines: 1,
+                              textAlign: TextAlign.justify,
+                              style: const TextStyle(
+                                height: 1.5,
+                                color: Colors.black,
+                                fontSize: 20,
+                              ),
+                              decoration: InputDecoration(
+                                  contentPadding:
+                                      const EdgeInsets.only(left: 20),
+                                  // filled: true,
+                                  label: const Text("Reminder time"),
+                                  labelStyle: const TextStyle(
+                                      color: Color.fromARGB(255, 74, 120, 246),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600),
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.always,
+                                  border: InputBorder.none,
+                                  hintText: widget.item.alarmed == null ? "" : DateFormat("HH:mm")
+                                      .format(widget.item.alarmed!),
+                                  hintStyle: const TextStyle(
+                                      color: Colors.black, fontSize: 20)),
+                            ),
+                          ),
+                          Container(
+                            child: IconButton(
+                              icon: const Icon(Icons.access_time),
+                              onPressed: () {
+                                //getTimeFromUser();
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 10,
+                  ),
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              onTap: () {},
+                              readOnly: true,
+                              controller: _remindController,
+                              keyboardType: TextInputType.multiline,
+                              maxLines: 1,
+                              textAlign: TextAlign.justify,
+                              style: const TextStyle(
+                                height: 1.5,
+                                color: Colors.black,
+                                fontSize: 20,
+                              ),
+                              decoration: InputDecoration(
+                                  contentPadding:
+                                      const EdgeInsets.only(left: 20),
+                                  // filled: true,
+                                  label: const Text("Reminder before..."),
+                                  labelStyle: const TextStyle(
+                                      color: Color.fromARGB(255, 74, 120, 246),
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600),
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.always,
+                                  border: InputBorder.none,
+                                  hintText: widget.item.alarmed == null ? "" : "${widget.item.remindBefore} minutes",
+                                  hintStyle: const TextStyle(
+                                      color: Colors.black, fontSize: 20)),
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            child: DropdownButton(
+                              icon: const Icon(
+                                Icons.keyboard_arrow_down,
+                              ),
+                              underline: Container(height: 0),
+                              iconSize: 32,
+                              elevation: 4,
+                              
+                              onChanged: (value) {
+                                // setState(() {
+                                //   _selectedRemind = int.parse(value!);
+                                // });
+                              },
+                              items: remindList.map<DropdownMenuItem<String>>(
+                                (int value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value.toString(),
+                                    child: Text(value.toString()),
+                                  );
+                                },
+                              ).toList(),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "Content",
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade800, fontSize: 20)),
             ),
-            const SizedBox(
-              height: 20,
-            ),
-            TextField(
-              readOnly: true,
-              controller: _dateController,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              textAlign: TextAlign.justify,
-              style: const TextStyle(
-                height: 1.5,
-                color: Colors.black,
-                fontSize: 20,
-              ),
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "Created Date",
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade800, fontSize: 20)),
-            ),
-            const SizedBox(
-              height: 20,
-            ),
-            TextField(
-              readOnly: true,
-              controller: _timeController,
-              keyboardType: TextInputType.multiline,
-              maxLines: null,
-              textAlign: TextAlign.justify,
-              style: const TextStyle(
-                height: 1.5,
-                color: Colors.black,
-                fontSize: 20,
-              ),
-              decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: "Reminder Time",
-                  hintStyle:
-                      TextStyle(color: Colors.grey.shade800, fontSize: 20)),
-            ),
-            
-          ],
-        )
-            // Text(widget.item.toString()),
-            ),
-      ),
+          )
+          // Text(widget.item.toString()),
+          ),
     );
   }
 }
