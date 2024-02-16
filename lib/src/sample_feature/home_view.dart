@@ -83,11 +83,15 @@ class _HomeViewState extends State<HomeView> {
       });
 
       widget.items.sort((Note a, Note b) {
-        if (a.created == null) {
-          return 1;
+        if (a.alarmed == null) {
+          if (a.created == null) {
+            return 1;
+          } else {
+            if (b.created == null) return -1;
+            return b.created!.compareTo(a.created!);
+          }
         } else {
-          if (b.created == null) return -1;
-          return b.created!.compareTo(a.created!);
+          return 0;
         }
       });
 
@@ -419,7 +423,6 @@ class _HomeViewState extends State<HomeView> {
                                             icon: Icon(Icons.upcoming),
                                             text: "Upcoming",
                                           ),
-                                          
                                           Tab(
                                             icon: Icon(Icons.calendar_today),
                                             text: "Today",
@@ -444,7 +447,6 @@ class _HomeViewState extends State<HomeView> {
                                             icon: Icon(Icons.upcoming),
                                             text: "Upcoming",
                                           ),
-                                          
                                           Tab(
                                             icon: Icon(Icons.calendar_today),
                                             text: "Today",
