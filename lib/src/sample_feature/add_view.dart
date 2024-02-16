@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:intl/intl.dart';
 import 'package:notes_app/src/models/data.dart';
+import 'package:notes_app/src/sample_feature/tab_list_view.dart';
 
 import '../models/note.dart';
 
@@ -22,8 +23,9 @@ class _AddViewState extends State<AddView> {
   final _timeController = TextEditingController();
   final _remindController = TextEditingController();
 
-  DateTime _selectedDate = DateTime.now();
-  String _selectedTime = DateFormat("HH:mm").format(DateTime.now());
+  DateTime? _selectedDate = null;
+  // String _selectedTime = DateFormat("HH:mm").format(DateTime.now());
+  String _selectedTime = "";
   int _selectedRemind = 10;
   List<int> remindList = [5, 10, 15, 20];
   final _formKey = GlobalKey<FormState>();
@@ -57,9 +59,13 @@ class _AddViewState extends State<AddView> {
         lastDate: DateTime(2099));
     if (picker != null) {
       setState(() {
-        _selectedDate = DateTime(picker.year, picker.month, picker.day, _selectedDate.hour, _selectedDate.minute);
+        if (_selectedDate != null ) {
+          _selectedDate = DateTime(picker.year, picker.month, picker.day, _selectedDate!.hour, _selectedDate!.minute);
+        } else {
+        _selectedDate = DateTime(picker.year, picker.month, picker.day);
+        }
       });
-      if (_selectedDate.day <= DateTime.now().day) {
+      if (_selectedDate != null && _selectedDate!.day < DateTime.now().day) {
         final snackBar = SnackBar(
           duration: const Duration(seconds: 5),
           backgroundColor: Colors.red,
@@ -94,7 +100,28 @@ class _AddViewState extends State<AddView> {
           );
         },);
     if (picker != null) {
-      if (_selectedDate.day <= d.day &&
+      if (_selectedDate == null) {
+        final snackBar = SnackBar(
+          duration: const Duration(seconds: 5),
+          backgroundColor: Colors.red,
+          content: const Text(
+            'Warning: Choose a date first!',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          ),
+          action: SnackBarAction(
+            textColor: Colors.white,
+            label: 'OK',
+            onPressed: () {
+              // Some code to undo the change.
+            },
+          ),
+        );
+
+        // Find the ScaffoldMessenger in the widget tree
+        // and use it to show a SnackBar.
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      }
+      else if (_selectedDate!.day <= d.day &&
           (picker.hour < t.hour || picker.minute < t.minute)) {
         final snackBar = SnackBar(
           duration: const Duration(seconds: 5),
@@ -118,8 +145,8 @@ class _AddViewState extends State<AddView> {
       } else {
         setState(() {
           TimeOfDay t = picker;
-_selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day, t.hour, t.minute);
-          _selectedTime = DateFormat("HH:mm").format(_selectedDate);
+_selectedDate = DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, t.hour, t.minute);
+          _selectedTime = DateFormat("HH:mm").format(_selectedDate!);
         });
       }
     }
@@ -148,11 +175,13 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                 title: _titleController.text,
                 created: DateTime.now(),
                 modified: DateTime.now(),
-                alarmed: _selectedDate);
+                alarmed: _selectedDate,
+                color: getRandomColor());
             print(newNote);
             setState(() {
-              sampleData.add(newNote);
+              sampleData.insert(0, newNote);
             });
+            
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -251,10 +280,8 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child: TextFormField(
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Please enter your content!";
-                              } else if (value.isEmpty &&
-                                  _dataController.text.isEmpty) {
+                              if ((value == null || value.isEmpty) &&
+                                  _titleController.text.isEmpty) {
                                 return "Either title or content must be entered!";
                               }
                             },
@@ -304,7 +331,7 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                                 getDateFromUser();
                               },
                               readOnly: true,
-                              controller: _timeController,
+                              controller: _dateController,
                               keyboardType: TextInputType.multiline,
                               maxLines: 1,
                               textAlign: TextAlign.justify,
@@ -325,8 +352,8 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: DateFormat("dd/MM/yyyy")
-                                      .format(_selectedDate),
+                                  hintText: _selectedDate == null ? "Choose a date" : DateFormat("dd/MM/yyyy")
+                                      .format(_selectedDate!),
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -361,7 +388,7 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                                 getTimeFromUser();
                               },
                               readOnly: true,
-                              controller: _dateController,
+                              controller: _timeController,
                               keyboardType: TextInputType.multiline,
                               maxLines: 1,
                               textAlign: TextAlign.justify,
@@ -382,7 +409,7 @@ _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: _selectedTime,
+                                  hintText: _selectedTime.isNotEmpty ? _selectedTime : "Choose a reminder time",
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),

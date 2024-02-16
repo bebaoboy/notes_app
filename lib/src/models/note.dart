@@ -42,7 +42,8 @@ class Note {
       'created': created != null ? created.toString() : '',
       'modified': modified != null ? modified.toString(): '',
       'id': id,
-      'alarmed': alarmed != null ? alarmed.toString() : ''
+      'alarmed': alarmed != null ? alarmed.toString() : '',
+      'color': color != null ? '${color!.value}' : "",
     };
   }
 
@@ -55,6 +56,7 @@ class Note {
       created: map['created'] == '' ? null : DateTime.parse(map['created']),
       modified: map['modified'] == '' ? null : DateTime.parse(map['modified']),
       alarmed: map['alarmed'] == '' ? null : DateTime.parse(map['alarmed']),
+      color: map['color'] == '' ? null : Color(int.parse(map['color'])),
     );
   }
 
@@ -75,4 +77,15 @@ class Note {
 
   @override
   int get hashCode => data.hashCode ^ completed.hashCode;
+
+  static String encode(List<Note> notes) => json.encode(
+        notes
+            .map<Map<String, dynamic>>((note) => note.toMap())
+            .toList(),
+      );
+
+  static List<Note> decode(String notes) =>
+      (json.decode(notes) as List<dynamic>)
+          .map<Note>((item) => Note.fromMap(item))
+          .toList();
 }

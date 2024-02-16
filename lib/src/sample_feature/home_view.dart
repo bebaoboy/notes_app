@@ -1,11 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:notes_app/src/models/data.dart';
 import 'package:notes_app/src/models/note.dart';
 import 'package:notes_app/src/sample_feature/add_view.dart';
 import 'package:notes_app/src/sample_feature/tab_list_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../settings/settings_view.dart';
+
+Future<String> addToSP(List<Note> notes) async {
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    String s = Note.encode(notes);
+    prefs.setString('graphLists', s);
+    return s;
+  } catch (e) {
+    SharedPreferences.setMockInitialValues({});
+  }
+  return "";
+}
+
+Future<List<Note>> getSP() async {
+  final prefs = await SharedPreferences.getInstance();
+  // print("sp: " + (prefs.getString('graphLists') ?? "[]"));
+  final List<Note> jsonData =
+      Note.decode(prefs.getString('graphLists') ?? '[]');
+  return jsonData;
+}
 
 /// Displays a list of SampleItems.
 class HomeView extends StatefulWidget {
@@ -25,6 +47,20 @@ class HomeView extends StatefulWidget {
 bool _showFab = true;
 
 class _HomeViewState extends State<HomeView> {
+  @override
+  void initState() {
+    if (widget.items.isEmpty) {
+      getSP().catchError((e) => print(e)).then((value) {
+        setState(() {
+          sampleData = value;
+          widget.items.addAll(sampleData);
+          print(sampleData);
+        });
+      });
+    }
+    super.initState();
+  }
+
   String searchVal = "";
   final duration = const Duration(milliseconds: 300);
   List<Note> currentItems = [];
@@ -78,6 +114,30 @@ class _HomeViewState extends State<HomeView> {
                   )
                   .toList();
           widget.items.removeAt(i);
+          currentItems = widget.items
+              .where((item) =>
+                  (searchVal.isNotEmpty &&
+                      item.title
+                          .toLowerCase()
+                          .contains(searchVal.trim().toLowerCase())) ||
+                  (searchVal.isEmpty))
+              .toList();
+          print(deletedItems);
+        }
+      });
+    }
+  }
+
+  void onRestoreCallback(int id) {
+    if (id >= 0 && id < widget.items.length) {
+      setState(() {
+        int i = deletedItems.indexWhere((e) => e.id == id);
+        if (i != -1) {
+          deletedItems[i].title =
+              deletedItems[i].title.substring('Deleted'.length);
+
+          widget.items.add(deletedItems[i]);
+          deletedItems.removeAt(i);
           currentItems = widget.items
               .where((item) =>
                   (searchVal.isNotEmpty &&
@@ -179,9 +239,17 @@ class _HomeViewState extends State<HomeView> {
                     SpeedDialChild(
                       child: const Icon(Icons.add),
                       label: 'Add a note',
-                      onTap: () {
-                        Navigator.restorablePushNamed(
-                            context, AddView.routeName);
+                      onTap: () async {
+                        await Navigator.pushNamed(context, AddView.routeName)
+                            .then(
+                          (value) {
+                            print("add");
+                            setState(() {
+                                                          addToSP(sampleData).then((value) => print(value));
+
+                            });
+                          },
+                        );
                       },
                     ),
                     SpeedDialChild(
@@ -209,13 +277,13 @@ class _HomeViewState extends State<HomeView> {
             body: NotificationListener<UserScrollNotification>(
               onNotification: (notification) {
                 final ScrollDirection direction = notification.direction;
-                setState(() {
-                  if (direction == ScrollDirection.reverse) {
-                    _showFab = false;
-                  } else {
-                    _showFab = true;
-                  }
-                });
+                // setState(() {
+                //   if (direction == ScrollDirection.reverse) {
+                //     _showFab = false;
+                //   } else {
+                //     _showFab = true;
+                //   }
+                // });
                 return true;
               },
               child: Column(
@@ -273,6 +341,25 @@ class _HomeViewState extends State<HomeView> {
                                 data: ThemeData()
                                     .copyWith(splashColor: Colors.white),
                                 child: TabBar(
+                                  onTap: (value) async {
+                                    getSP()
+                                        .catchError((e) => print(e))
+                                        .then((value) {
+                                      setState(() {
+                                        sampleData = value;
+                                        widget.items.clear();
+                                        widget.items.addAll(sampleData);
+                                        print(sampleData);
+                                      });
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Loading Data'),
+                                          duration: Duration(seconds: 1),
+                                        ),
+                                      );
+                                    });
+                                  },
                                   indicatorColor: Colors.white,
                                   labelColor: Colors.white,
                                   unselectedLabelColor: Colors.grey.shade800,
@@ -343,12 +430,21 @@ class _HomeViewState extends State<HomeView> {
                                 items: searchVal.isEmpty
                                     ? widget.items
                                     : currentItems,
-                                condition: (n) => true,
+                                condition: (n) => !n.completed,
                                 checkboxCallback: onCheckboxCallback,
                                 deleteCallback: onDeleteCallback,
                               ),
-                              const Center(
-                                child: Text("Calls"),
+                              TabListView(
+                                id: 1,
+                                items: searchVal.isEmpty
+                                    ? widget.items
+                                    : currentItems,
+                                condition: (n) =>
+                                    n.alarmed != null &&
+                                    n.alarmed!.day == DateTime.now().day &&
+                                    !n.completed,
+                                checkboxCallback: onCheckboxCallback,
+                                deleteCallback: onDeleteCallback,
                               ),
                               TabListView(
                                 id: 2,
@@ -372,7 +468,7 @@ class _HomeViewState extends State<HomeView> {
                                 id: 4,
                                 items: deletedItems,
                                 condition: (n) => n.title.startsWith("Deleted"),
-                                checkboxCallback: null,
+                                checkboxCallback: onRestoreCallback,
                                 deleteCallback: onDeleteForeverCallback,
                               ),
                             ]
@@ -382,7 +478,7 @@ class _HomeViewState extends State<HomeView> {
                                 items: searchVal.isEmpty
                                     ? widget.items
                                     : currentItems,
-                                condition: (n) => true,
+                                condition: (n) => !n.completed,
                                 checkboxCallback: onCheckboxCallback,
                                 deleteCallback: onDeleteCallback,
                               ),
@@ -392,8 +488,9 @@ class _HomeViewState extends State<HomeView> {
                                     ? widget.items
                                     : currentItems,
                                 condition: (n) =>
-                                    n.created != null &&
-                                    n.created!.day == DateTime.now().day,
+                                    n.alarmed != null &&
+                                    n.alarmed!.day == DateTime.now().day &&
+                                    !n.completed,
                                 checkboxCallback: onCheckboxCallback,
                                 deleteCallback: onDeleteCallback,
                               ),
