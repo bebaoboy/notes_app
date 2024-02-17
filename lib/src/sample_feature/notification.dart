@@ -1,10 +1,12 @@
+import 'dart:math';
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:notes_app/main.dart';
-import 'package:notes_app/src/sample_feature/details_view.dart';
 
-import '../models/note.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/timezone.dart';
 
 void onDidReceiveMainNotificationResponse(
     NotificationResponse notificationResponse) async {
@@ -94,7 +96,64 @@ class NotificationService {
             channelAction: AndroidNotificationChannelAction.createIfNotExists);
     const NotificationDetails notificationDetails =
         NotificationDetails(android: androidNotificationDetails);
-    await mainPlugin.show(0, title, body, notificationDetails,
+    await mainPlugin.show(int.parse(payload), title, body, notificationDetails,
+        payload: payload);
+  }
+
+  Future showPersistentNotification(
+    callback, {
+    required String title,
+    required String body,
+    required String payload,
+  }) async {
+    final Int64List vibrationPattern = Int64List(4);
+    vibrationPattern[0] = 5000;
+    vibrationPattern[1] = 1000;
+    vibrationPattern[2] = 5000;
+    vibrationPattern[3] = 2000;
+    NotificationService.notificationCallBackFunction = callback;
+    AndroidNotificationDetails androidNotificationDetails =
+        AndroidNotificationDetails('1', 'Reminder Details',
+            channelDescription: 'your channel description',
+            importance: Importance.max,
+            priority: Priority.high,
+            ticker: 'ticker',
+            vibrationPattern: vibrationPattern,
+            // when: ,
+            channelAction: AndroidNotificationChannelAction.createIfNotExists);
+    final NotificationDetails notificationDetails =
+        NotificationDetails(android: androidNotificationDetails);
+    await mainPlugin.show(
+        4000, title, body, notificationDetails,
+        payload: payload);
+  }
+
+  Future showScheduleNotification(
+    callback, {
+    required String title,
+    required String body,
+    required String payload,
+    TZDateTime? duration,
+  }) async {
+        NotificationService.notificationCallBackFunction = callback;
+
+    duration ??= tz.TZDateTime.now(tz.local);
+    mainPlugin.zonedSchedule(
+        int.parse(payload) + 2000,
+        title,
+        body,
+        duration
+        // .add(const Duration(seconds: 5))
+        ,
+        const NotificationDetails(
+          android: AndroidNotificationDetails('2', 'Scheduled',
+              channelDescription: 'channel description',
+              importance: Importance.high,
+              priority: Priority.high),
+        ),
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload);
   }
 }

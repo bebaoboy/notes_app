@@ -1,16 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:notes_app/main.dart';
 import 'package:notes_app/src/models/data.dart';
 import 'package:notes_app/src/models/note.dart';
 import 'package:notes_app/src/sample_feature/add_view.dart';
 import 'package:notes_app/src/sample_feature/details_view.dart';
-import 'package:notes_app/src/sample_feature/notification.dart';
 import 'package:notes_app/src/sample_feature/tab_list_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vibration/vibration.dart';
 
 import '../settings/settings_view.dart';
 
@@ -29,9 +30,10 @@ Future<String> addToSP(List<Note> notes, {String code = 'allNotes'}) async {
 
 Future<List<Note>> getSP({String code = 'allNotes'}) async {
   final prefs = await SharedPreferences.getInstance();
-  // print("sp: " + (prefs.getString('graphLists') ?? "[]"));
+  print("sp: " + (prefs.getString(code) ?? "[]"));
   print(code);
   final List<Note> jsonData = Note.decode(prefs.getString(code) ?? '[]');
+  if (jsonData.isEmpty && code == "allNotes") return sampleData2;
   return jsonData;
 }
 
@@ -51,10 +53,54 @@ class HomeView extends StatefulWidget {
 }
 
 bool _showFab = true;
+var cb;
 
 class _HomeViewState extends State<HomeView> {
+  timer(context) {
+    int counter = 10;
+    Timer.periodic(
+        const Duration(
+          seconds: 1,
+        ), (timer) {
+      Vibration.cancel();
+
+      counter--;
+      print(counter);
+      if (counter == 0) {
+        timer.cancel();
+        Vibration.cancel();
+      }
+      Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
+      notificationService.showPersistentNotification((payload) async {
+        if (context != null) {
+          // Navigator.restorablePushNamed(context, DetailView.routeName,
+          //     arguments: widget.items
+          //         .firstWhere((element) => element.id == 1)
+          //         .toMap());
+          notificationService.mainPlugin.cancel(1000);
+          timer.cancel();
+          Vibration.cancel();
+        }
+      },
+          title: "Testing permanent alarm",
+          body: "Click me to stop",
+          payload: "1");
+    });
+  }
+
   @override
   void initState() {
+    //timer(context);
+    cb = (payload) async {
+      if (navigatorKey.currentState == null) return;
+      int i = int.parse(payload);
+      //print(widget.items.firstWhere((element) => element.id == i));
+      Navigator.restorablePushNamed(
+          navigatorKey.currentState!.context, DetailView.routeName,
+          arguments:
+              widget.items.firstWhere((element) => element.id == i).toMap());
+    };
+
     if (widget.items.isEmpty) {
       getSP().catchError((e) => print(e)).then((value) {
         sortData(value);
@@ -71,15 +117,33 @@ class _HomeViewState extends State<HomeView> {
 
   void sortData(value) {
     setState(() {
-      print(value);
+      //print(value);
 
       sampleData = value;
       widget.items.clear();
       widget.items.addAll(sampleData);
-      widget.items.sort((Note a, Note b) {
-        // print(a);
-        // print("and");
-        // print(b);
+
+      List<Note> passed = [], upcoming = [], noAlarm = [];
+      widget.items.forEach((n) {
+        if (n.alarmed == null) {
+          noAlarm.add(n);
+        } else if (n.alarmed!.compareTo(DateTime.now()) == -1) {
+          upcoming.add(n);
+        } else {
+          passed.add(n);
+        }
+      });
+
+      noAlarm.sort((Note a, Note b) {
+        if (a.created == null) {
+          return 1;
+        } else {
+          if (b.created == null) return -1;
+          return b.created!.compareTo(a.created!);
+        }
+      });
+
+      upcoming.sort((Note a, Note b) {
         if (a.alarmed == null) {
           return 1;
         } else {
@@ -88,25 +152,54 @@ class _HomeViewState extends State<HomeView> {
         }
       });
 
-      widget.items.sort((Note a, Note b) {
-        if (a.alarmed == null) {
-          if (a.created == null) {
-            return 1;
-          } else {
-            if (b.created == null) return -1;
-            return b.created!.compareTo(a.created!);
-          }
+      passed.sort((Note a, Note b) {
+        if (a.created == null) {
+          return 1;
         } else {
-          return 0;
+          if (b.created == null) return -1;
+          return b.created!.compareTo(a.created!);
         }
       });
 
-      widget.items.sort((Note a, Note b) {
-        if (a.alarmed != null && a.alarmed!.compareTo(DateTime.now()) == -1) {
-          return 1;
-        }
-        return 0;
-      });
+      widget.items.clear();
+      widget.items.addAll(passed);
+      widget.items.addAll(noAlarm);
+      widget.items.addAll(upcoming);
+
+      // widget.items.sort((Note a, Note b) {
+      //   // print(a);
+      //   // print("and");
+      //   // print(b);
+      //   if (a.alarmed == null) {
+      //     return 1;
+      //   } else {
+      //     if (b.alarmed == null) return -1;
+      //     return b.alarmed!.compareTo(a.alarmed!);
+      //   }
+      // });
+
+      // widget.items.sort((Note a, Note b) {
+      //   if (a.alarmed == null) {
+      //     if (a.created == null) {
+      //       return 1;
+      //     } else {
+      //       if (b.created == null) return -1;
+      //       return b.created!.compareTo(a.created!);
+      //     }
+      //   } else {
+      //     return 0;
+      //   }
+      // });
+
+      // widget.items.sort((Note a, Note b) {
+      //   if (a.alarmed != null && a.alarmed!.compareTo(DateTime.now()) == -1) {
+      //     if (b.alarmed != null && b.alarmed!.compareTo(DateTime.now()) == -1) {
+      //       return b.created!.compareTo(a.created!);
+      //     }
+      //     return 1;
+      //   }
+      //   return 0;
+      // });
     });
   }
 
@@ -128,7 +221,7 @@ class _HomeViewState extends State<HomeView> {
           .toList();
     });
 
-    print(currentItems);
+    //print(currentItems);
   }
 
   void onCheckboxCallback(int id) {
@@ -147,6 +240,7 @@ class _HomeViewState extends State<HomeView> {
               .toList();
         }
       });
+      addToSP(widget.items);
     }
   }
 
@@ -172,7 +266,7 @@ class _HomeViewState extends State<HomeView> {
                   (searchVal.isEmpty))
               .toList();
 
-          print(deletedItems);
+          //print(deletedItems);
         }
       });
       addToSP(widget.items);
@@ -201,7 +295,7 @@ class _HomeViewState extends State<HomeView> {
                   (searchVal.isEmpty))
               .toList();
 
-          print(deletedItems);
+          //print(deletedItems);
         }
       });
       addToSP(widget.items);
@@ -313,7 +407,12 @@ class _HomeViewState extends State<HomeView> {
                       child: const Icon(Icons.add),
                       label: 'Add a note',
                       onTap: () async {
-                        await Navigator.pushNamed(context, AddView.routeName)
+                        final prefs = await SharedPreferences.getInstance();
+                        String curID = prefs.getString("currentID") ??
+                            '${widget.items.length}';
+                        print("ID: " + curID);
+                        await Navigator.pushNamed(context, AddView.routeName,
+                                arguments: int.parse(curID))
                             .then(
                           (value) {
                             print("add");
@@ -337,12 +436,13 @@ class _HomeViewState extends State<HomeView> {
                       label: 'Sort Date Desc',
                       onTap: () {
                         notificationService.showNotification((payload) async {
-                           Navigator.restorablePushNamed(
-                                      context, DetailView.routeName,
-                                      arguments: widget.items.firstWhere((element) =>
-                                          element.id == int.parse(payload!)).toMap())
-                                      ;
-                            },
+                          Navigator.restorablePushNamed(
+                              context, DetailView.routeName,
+                              arguments: widget.items
+                                  .firstWhere((element) =>
+                                      element.id == int.parse(payload!))
+                                  .toMap());
+                        },
                             title: "Demo simple notification for note id=1",
                             body: "The body of it ",
                             payload: "1");
@@ -531,7 +631,7 @@ class _HomeViewState extends State<HomeView> {
                                 items: searchVal.isEmpty
                                     ? widget.items
                                     : currentItems,
-                                condition: (n) => !n.completed,
+                                condition: (n) => true,
                                 checkboxCallback: onCheckboxCallback,
                                 deleteCallback: onDeleteCallback,
                               ),

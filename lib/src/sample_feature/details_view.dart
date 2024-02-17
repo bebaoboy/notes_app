@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:intl/intl.dart';
-import 'package:notes_app/src/sample_feature/notification.dart';
+import 'package:notes_app/src/sample_feature/home_view.dart';
 
 import '../../main.dart';
 import '../models/note.dart';
@@ -19,12 +19,11 @@ class DetailView extends StatefulWidget {
 
 class _DetailViewState extends State<DetailView> {
   final _titleController = TextEditingController();
-  final _dataController = TextEditingController();
+  final _contentController = TextEditingController();
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
   final _remindController = TextEditingController();
   final _idController = TextEditingController();
-  var context2;
 
   @override
   void initState() {
@@ -34,7 +33,7 @@ class _DetailViewState extends State<DetailView> {
         TextPosition(offset: _newValue.length),
       ),
     );
-    _dataController.value = TextEditingValue(
+    _contentController.value = TextEditingValue(
       text: widget.item.data,
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
@@ -82,13 +81,8 @@ class _DetailViewState extends State<DetailView> {
             tooltip: "Get a demo notification",
             icon: const Icon(Icons.notifications_active),
             onPressed: () {
-              notificationService.showNotification((payload) async {
-                if (navigatorKey.currentState == null) return;
-                Navigator.restorablePushNamed(
-                                      navigatorKey.currentState!.context, DetailView.routeName,
-                                      arguments: widget.item.toMap());
-                
-              },
+              notificationService.showNotification(
+                cb,
                   title: "Notification for note id=${widget.item.id}",
                   body:
                       "${widget.item.title}\n\n${widget.item.data}\nAlarmed at ${widget.item.alarmed}",
@@ -225,7 +219,7 @@ class _DetailViewState extends State<DetailView> {
                               }
                             },
                             scrollController: _scrollController2,
-                            controller: _dataController,
+                            controller: _contentController,
                             keyboardType: TextInputType.multiline,
                             maxLines: 7,
                             minLines: 2,
@@ -409,7 +403,7 @@ class _DetailViewState extends State<DetailView> {
                                   border: InputBorder.none,
                                   hintText: widget.item.alarmed == null
                                       ? ""
-                                      : "${widget.item.remindBefore} minutes",
+                                      : widget.item.remindBefore == 1 ? "Immediately" : "${widget.item.remindBefore} minutes",
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),

@@ -71,7 +71,7 @@ class Note {
 
   @override
   String toString() =>
-      'Note(title: $title, data: $data, completed: $completed, created: $created, alarm: $alarmed, before: $remindBefore)';
+      'Note #$id: \n\ttitle: $title, \n\tdata: $data, \n\tcompleted: $completed, \n\tcreated: $created, \n\talarm: $alarmed, \n\tbefore: $remindBefore)';
 
   @override
   bool operator ==(covariant Note other) {

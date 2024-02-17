@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
               builder: (BuildContext context) {
                 switch (routeSettings.name) {
                   case AddView.routeName:
-                    return AddView();
+                    return AddView(id: routeSettings.arguments as int);
                   case SettingsView.routeName:
                     return SettingsView(controller: settingsController);
                   case DetailView.routeName:

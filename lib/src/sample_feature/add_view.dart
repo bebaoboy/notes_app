@@ -1,33 +1,74 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:intl/intl.dart';
+import 'package:notes_app/main.dart';
 import 'package:notes_app/src/models/data.dart';
 import 'package:notes_app/src/sample_feature/tab_list_view.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:timezone/timezone.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:vibration/vibration.dart';
 
 import '../models/note.dart';
+import 'details_view.dart';
 
 /// Displays detailed information about a SampleItem.
 class AddView extends StatefulWidget {
-  const AddView({super.key});
+  const AddView({super.key, required this.id});
 
   static const routeName = '/add';
+  final int id;
 
   @override
   State<AddView> createState() => _AddViewState();
 }
 
+timer(context, newNote) {
+  int counter = 100;
+  Timer.periodic(
+      const Duration(
+        seconds: 1,
+      ), (timer) {
+    Vibration.cancel();
+
+    counter--;
+    print(counter);
+    if (counter == 0) {
+      timer.cancel();
+      Vibration.cancel();
+    }
+    Vibration.vibrate(pattern: [100, 200, 400], repeat: 1);
+    notificationService.showPersistentNotification((payload) async {
+      if (context != null) {
+        Navigator.restorablePushNamed(context, DetailView.routeName,
+            arguments: newNote.toMap());
+        notificationService.mainPlugin.cancel(1000);
+        timer.cancel();
+        Vibration.cancel();
+      }
+    },
+        title: "Follow-up attack: id=${newNote.id}",
+        body:
+            "Tap to dismiss!\n${newNote.title}\n${newNote.data}\nGO OFF at ${newNote.alarmed}",
+        payload: "${newNote.id}");
+  });
+}
+
 class _AddViewState extends State<AddView> {
   final _titleController = TextEditingController();
-  final _dataController = TextEditingController();
+  final _contentController = TextEditingController();
   final _dateController = TextEditingController();
   final _timeController = TextEditingController();
   final _remindController = TextEditingController();
+  final _idController = TextEditingController();
 
   DateTime? _selectedDate = null;
   // String _selectedTime = DateFormat("HH:mm").format(DateTime.now());
   String _selectedTime = "";
-  int _selectedRemind = 10;
-  List<int> remindList = [5, 10, 15, 20];
+  int _selectedRemind = 1;
+  List<int> remindList = [1, 5, 10, 15, 20];
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -38,8 +79,14 @@ class _AddViewState extends State<AddView> {
         TextPosition(offset: _newValue.length),
       ),
     );
-    _dataController.value = TextEditingValue(
+    _contentController.value = TextEditingValue(
       text: "",
+      selection: TextSelection.fromPosition(
+        TextPosition(offset: _newValue.length),
+      ),
+    );
+    _idController.value = TextEditingValue(
+      text: '${widget.id}',
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
       ),
@@ -125,7 +172,7 @@ class _AddViewState extends State<AddView> {
         // and use it to show a SnackBar.
         ScaffoldMessenger.of(context).showSnackBar(snackBar);
       } else if (_selectedDate!.day <= d.day &&
-          (picker.hour < t.hour || picker.minute < t.minute)) {
+          (picker.hour < t.hour && picker.minute < t.minute)) {
         final snackBar = SnackBar(
           duration: const Duration(seconds: 5),
           backgroundColor: Colors.red,
@@ -172,9 +219,23 @@ class _AddViewState extends State<AddView> {
         onPress: () async {
           // Validate returns true if the form is valid, or false otherwise.
           if (_formKey.currentState!.validate()) {
+            if (_selectedDate != null &&
+                _selectedDate!
+                        .subtract(Duration(minutes: _selectedRemind))
+                        .compareTo(DateTime.now()) <=
+                    0) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                      'Please choose the reminder after ${DateFormat("dd/MM/yyyy HH:mm").format(DateTime.now().add(Duration(minutes: _selectedRemind)))}'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+              return;
+            }
             var newNote = Note(
-                data: _dataController.text,
-                id: sampleData.length,
+                data: _contentController.text,
+                id: widget.id + 1,
                 title: _titleController.text,
                 created: DateTime.now(),
                 modified: DateTime.now(),
@@ -182,14 +243,46 @@ class _AddViewState extends State<AddView> {
                 color: getRandomColor(),
                 remindBefore: _selectedRemind);
             print(newNote);
+
+            final prefs = await SharedPreferences.getInstance();
+            prefs.setString("currentID", '${widget.id + 1}');
+
+            if (newNote.alarmed != null) {
+              var tzd = TZDateTime(
+                  tz.local,
+                  newNote.alarmed!.year,
+                  newNote.alarmed!.month,
+                  newNote.alarmed!.day,
+                  newNote.alarmed!.hour,
+                  newNote.alarmed!.minute);
+              print(tzd);
+
+              notificationService.showScheduleNotification((payload) async {
+                if (navigatorKey.currentState == null) return;
+                int i = int.parse(payload);
+                timer(navigatorKey.currentState!.context, newNote);
+                //print(widget.items.firstWhere((element) => element.id == i));
+                Navigator.restorablePushNamed(
+                    navigatorKey.currentState!.context, DetailView.routeName,
+                    arguments: newNote.toMap());
+              },
+                  title: "Id=${newNote.id}",
+                  body:
+                      "Scheduled note: ${newNote.title}\n\n${newNote.data}\nGO OFF at ${newNote.alarmed}",
+                  payload: "${newNote.id}",
+                  duration: tzd
+                      .subtract(Duration(minutes: newNote.remindBefore))
+                      .add(const Duration(seconds: 1)));
+            }
+
             setState(() {
               sampleData.insert(0, newNote);
             });
 
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Processing Data'),
+              SnackBar(
+                content: Text('Done! Alarm is set at ${newNote.alarmed == null ? "Indefinitely" : newNote.alarmed!}'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -210,6 +303,38 @@ class _AddViewState extends State<AddView> {
               key: _formKey,
               child: ListView(
                 children: [
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: _idController,
+                        readOnly: true,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          height: 1.5,
+                          color: Colors.black,
+                          fontSize: 20,
+                        ),
+                        decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.only(left: 20),
+                            // filled: true,
+                            label: const Text("Id"),
+                            labelStyle: const TextStyle(
+                                color: Color.fromARGB(255, 74, 120, 246),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                            floatingLabelBehavior: FloatingLabelBehavior.always,
+                            border: InputBorder.none,
+                            hintText: "Id",
+                            hintStyle: TextStyle(
+                                color: Colors.grey.shade800, fontSize: 20)),
+                      ),
+                    ),
+                  ),
                   Scrollbar(
                     child: Card(
                       shape: RoundedRectangleBorder(
@@ -290,7 +415,7 @@ class _AddViewState extends State<AddView> {
                               }
                             },
                             scrollController: _scrollController2,
-                            controller: _dataController,
+                            controller: _contentController,
                             keyboardType: TextInputType.multiline,
                             maxLines: 7,
                             minLines: 2,
@@ -471,7 +596,9 @@ class _AddViewState extends State<AddView> {
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: "$_selectedRemind minutes",
+                                  hintText: _selectedRemind == 1
+                                      ? "Immediately"
+                                      : "$_selectedRemind minutes",
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
