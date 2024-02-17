@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:notes_app/main.dart';
 import 'package:notes_app/src/models/data.dart';
 import 'package:notes_app/src/models/note.dart';
 import 'package:notes_app/src/sample_feature/add_view.dart';
+import 'package:notes_app/src/sample_feature/details_view.dart';
+import 'package:notes_app/src/sample_feature/notification.dart';
 import 'package:notes_app/src/sample_feature/tab_list_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -15,9 +20,10 @@ Future<String> addToSP(List<Note> notes, {String code = 'allNotes'}) async {
     String s = Note.encode(notes);
     prefs.setString(code, s);
     return s;
-  } catch (e) {
+  } on MissingPluginException {
     SharedPreferences.setMockInitialValues({});
-  }
+    sampleData = sampleData2;
+  } catch (e) {}
   return "";
 }
 
@@ -212,6 +218,21 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
+  // void onDidReceiveNotificationResponse(
+  //     NotificationResponse notificationResponse) async {
+  //   final String? payload = notificationResponse.payload;
+  //   if (notificationResponse.payload != null) {
+  //     debugPrint('notification payload: $payload');
+  //     await Navigator.push(
+  //       context,
+  //       MaterialPageRoute<void>(
+  //           builder: (context) => DetailView(
+  //               item: widget.items.firstWhere(
+  //                   (element) => element.id == int.parse(payload!)))),
+  //     );
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
@@ -314,7 +335,18 @@ class _HomeViewState extends State<HomeView> {
                     SpeedDialChild(
                       child: const Icon(Icons.sort),
                       label: 'Sort Date Desc',
-                      onTap: null,
+                      onTap: () {
+                        notificationService.showNotification((payload) async {
+                           Navigator.restorablePushNamed(
+                                      context, DetailView.routeName,
+                                      arguments: widget.items.firstWhere((element) =>
+                                          element.id == int.parse(payload!)).toMap())
+                                      ;
+                            },
+                            title: "Demo simple notification for note id=1",
+                            body: "The body of it ",
+                            payload: "1");
+                      },
                     ),
                     SpeedDialChild(
                       child: const Icon(Icons.sort_by_alpha),

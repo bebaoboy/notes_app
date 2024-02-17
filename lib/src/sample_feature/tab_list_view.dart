@@ -181,7 +181,7 @@ class _TabListViewState extends State<TabListView> {
                                           widget.checkboxCallback!(item.id);
                                         }
                                       },
-                                      icon: item.completed == true
+                                      icon: widget.id == 4 ? const Icon(Icons.restore) : item.completed == true
                                           ? const Icon(Icons.check_box)
                                           : const Icon(
                                               Icons.check_box_outline_blank),

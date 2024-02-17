@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'package:intl/intl.dart';
+import 'package:notes_app/src/sample_feature/notification.dart';
 
+import '../../main.dart';
 import '../models/note.dart';
 
 /// Displays detailed information about a SampleItem.
@@ -18,9 +20,11 @@ class DetailView extends StatefulWidget {
 class _DetailViewState extends State<DetailView> {
   final _titleController = TextEditingController();
   final _dataController = TextEditingController();
-    final _dateController = TextEditingController();
+  final _dateController = TextEditingController();
   final _timeController = TextEditingController();
   final _remindController = TextEditingController();
+  final _idController = TextEditingController();
+  var context2;
 
   @override
   void initState() {
@@ -37,15 +41,23 @@ class _DetailViewState extends State<DetailView> {
       ),
     );
     _dateController.value = TextEditingValue(
-      text: widget.item.alarmed == null ? "Indefinitely" : DateFormat("dd/MM/yyyy")
-                                      .format(widget.item.alarmed!),
+      text: widget.item.alarmed == null
+          ? "Indefinitely"
+          : DateFormat("dd/MM/yyyy").format(widget.item.alarmed!),
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
       ),
     );
     _timeController.value = TextEditingValue(
-      text: widget.item.alarmed == null ? "" : DateFormat("HH:mm")
-                                      .format(widget.item.alarmed!),
+      text: widget.item.alarmed == null
+          ? ""
+          : DateFormat("HH:mm").format(widget.item.alarmed!),
+      selection: TextSelection.fromPosition(
+        TextPosition(offset: _newValue.length),
+      ),
+    );
+    _idController.value = TextEditingValue(
+      text: '${widget.item.id}',
       selection: TextSelection.fromPosition(
         TextPosition(offset: _newValue.length),
       ),
@@ -54,11 +66,10 @@ class _DetailViewState extends State<DetailView> {
   }
 
   final _newValue = "New value";
-   List<int> remindList = [5, 10, 15, 20];
+  List<int> remindList = [5, 10, 15, 20];
   final _formKey = GlobalKey<FormState>();
-    final ScrollController _scrollController = ScrollController();
+  final ScrollController _scrollController = ScrollController();
   final ScrollController _scrollController2 = ScrollController();
-
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +77,25 @@ class _DetailViewState extends State<DetailView> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 74, 120, 246),
         title: const Text('Note Details'),
+        actions: [
+          IconButton(
+            tooltip: "Get a demo notification",
+            icon: const Icon(Icons.notifications_active),
+            onPressed: () {
+              notificationService.showNotification((payload) async {
+                if (navigatorKey.currentState == null) return;
+                Navigator.restorablePushNamed(
+                                      navigatorKey.currentState!.context, DetailView.routeName,
+                                      arguments: widget.item.toMap());
+                
+              },
+                  title: "Notification for note id=${widget.item.id}",
+                  body:
+                      "${widget.item.title}\n\n${widget.item.data}\nAlarmed at ${widget.item.alarmed}",
+                  payload: "${widget.item.id}");
+            },
+          ),
+        ],
       ),
       floatingActionButton: const SpeedDial(
         label: Text("Edit"),
@@ -75,12 +105,44 @@ class _DetailViewState extends State<DetailView> {
         child: Icon(Icons.edit),
       ),
       body: Container(
-          margin: const EdgeInsets.fromLTRB(5, 30, 10, 10),
+          margin: const EdgeInsets.fromLTRB(5, 30, 10, 30),
           child: Scrollbar(
             child: Form(
               key: _formKey,
               child: ListView(
                 children: [
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 5,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        controller: _idController,
+                        readOnly: true,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          height: 1.5,
+                          color: Colors.black,
+                          fontSize: 20,
+                        ),
+                        decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.only(left: 20),
+                            // filled: true,
+                            label: const Text("Id"),
+                            labelStyle: const TextStyle(
+                                color: Color.fromARGB(255, 74, 120, 246),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600),
+                            floatingLabelBehavior: FloatingLabelBehavior.always,
+                            border: InputBorder.none,
+                            hintText: "Id",
+                            hintStyle: TextStyle(
+                                color: Colors.grey.shade800, fontSize: 20)),
+                      ),
+                    ),
+                  ),
                   Scrollbar(
                     child: Card(
                       shape: RoundedRectangleBorder(
@@ -96,6 +158,7 @@ class _DetailViewState extends State<DetailView> {
                               return "Either title or content must be entered!";
                             }
                           },
+                          readOnly: true,
                           scrollController: _scrollController,
                           controller: _titleController,
                           keyboardType: TextInputType.multiline,
@@ -154,6 +217,7 @@ class _DetailViewState extends State<DetailView> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           child: TextFormField(
+                            readOnly: true,
                             validator: (value) {
                               if ((value == null || value.isEmpty) &&
                                   _titleController.text.isEmpty) {
@@ -227,8 +291,10 @@ class _DetailViewState extends State<DetailView> {
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: widget.item.alarmed == null ? "Indefinitely" : DateFormat("dd/MM/yyyy")
-                                      .format(widget.item.alarmed!),
+                                  hintText: widget.item.alarmed == null
+                                      ? "Indefinitely"
+                                      : DateFormat("dd/MM/yyyy")
+                                          .format(widget.item.alarmed!),
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -284,8 +350,10 @@ class _DetailViewState extends State<DetailView> {
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: widget.item.alarmed == null ? "" : DateFormat("HH:mm")
-                                      .format(widget.item.alarmed!),
+                                  hintText: widget.item.alarmed == null
+                                      ? ""
+                                      : DateFormat("HH:mm")
+                                          .format(widget.item.alarmed!),
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -339,7 +407,9 @@ class _DetailViewState extends State<DetailView> {
                                   floatingLabelBehavior:
                                       FloatingLabelBehavior.always,
                                   border: InputBorder.none,
-                                  hintText: widget.item.alarmed == null ? "" : "${widget.item.remindBefore} minutes",
+                                  hintText: widget.item.alarmed == null
+                                      ? ""
+                                      : "${widget.item.remindBefore} minutes",
                                   hintStyle: const TextStyle(
                                       color: Colors.black, fontSize: 20)),
                             ),
@@ -353,7 +423,6 @@ class _DetailViewState extends State<DetailView> {
                               underline: Container(height: 0),
                               iconSize: 32,
                               elevation: 4,
-                              
                               onChanged: (value) {
                                 // setState(() {
                                 //   _selectedRemind = int.parse(value!);
