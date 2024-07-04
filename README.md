@@ -1,6 +1,6 @@
 # notes_app
 
-# Link: (Youtube)[https://youtu.be/JohHyR1DeK0]
+# Link: [Youtube](https://youtu.be/JohHyR1DeK0)
 
 
 
